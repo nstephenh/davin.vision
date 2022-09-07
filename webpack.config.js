@@ -19,9 +19,8 @@ process.env.NODE_ENV = 'development';
 const config = {
     entry: resolveAppPath('src'),
     output: {
-
         // Development filename output
-        filename: 'static/js/bundle.js',
+        filename: './static/js/bundle.js',
     },
     module: {
         rules: [

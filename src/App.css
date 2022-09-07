@@ -1,38 +1,40 @@
-.App {
-  text-align: center;
+
+.ds-sidebar {
+    width: 25%;
+    float: left;
+    text-align: center;
+
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.ds-main {
+    width: 75%;
+    float: left;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.ds-center-spacer {
+    flex-grow: 1;
+    border-bottom: 2px dotted black;
+    margin: 0 4px 4px;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+.ds-name {
+    font-weight: bold;
+    font-size: 120%;
+    display: flex;
 }
 
-.App-link {
-  color: #61dafb;
+.ds-right {
+    text-align: right;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.ds-table{
+    width: 100%;
+    text-align: center;
+
+}
+
+.ds-table-name {
+    width: 30%;
+    text-align: left;
+
 }

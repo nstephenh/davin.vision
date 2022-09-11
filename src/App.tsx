@@ -15,8 +15,12 @@ interface IForceEntry {
 
 function App() {
     const [unitList, setUnitList] = useState(Array<IForceEntry>())
+    const [dataLoading, setDataLoading] = useState(false)
+
 
     useEffect(() => {
+            setDataLoading(true)
+            //Will be called twice in dev. Annoying strict mode thing.
             // @ts-ignore
             git.clone({
                 fs,
@@ -49,8 +53,7 @@ function App() {
                     })
                 })
             });
-        },
-        []
+        }, []
     )
 
     function parseCat(cat: any) {
@@ -82,11 +85,3 @@ function App() {
 }
 
 export default App;
-
-//fs, dir: "/heresy/",
-//                 http,
-//                 corsProxy: 'https://cors.isomorphic-git.org',
-//                 url: 'https://github.com/BSData/horus-heresy',
-//                 ref: 'main',
-//                 singleBranch: true,
-//                 depth: 10

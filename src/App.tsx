@@ -1,16 +1,20 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
-import Datasheet from "./DataSheet";
+import Datasheet, {iUnit} from "./DataSheet";
 
 import git from 'isomorphic-git'
 import http from 'isomorphic-git/http/web'
 import FS from '@isomorphic-git/lightning-fs';
 import {parse} from 'arraybuffer-xml-parser';
+import {Spinner, SpinnerSize} from "@fluentui/react";
 
 const fs = new FS('fs')
 
-interface IForceEntry {
+export interface IForceEntry {
     bs_id: string
+    name: string
+    raw_data: any
+    unit?: iUnit;
 }
 
 function App() {
@@ -53,11 +57,35 @@ function App() {
                     })
                 })
             });
+            setDataLoading(false)
         }, []
     )
 
     function parseCat(cat: any) {
-        console.log(cat)
+        const sses = cat ["sharedSelectionEntries"]["selectionEntry"]
+        sses.map((link: any) => {
+            if (link['$type'] == "unit") {
+                const forceEntry: IForceEntry = {
+                    name: link["$name"],
+                    bs_id: link["$id"],
+                    raw_data: link
+                }
+                console.log(forceEntry)
+                setUnitList((unitList) => {
+                    let exists = false;
+                    const newList = unitList.map((oldEntry) => {
+                        if (oldEntry.bs_id == forceEntry.bs_id) {
+                            exists = true
+                            return forceEntry;
+                        } else {
+                            return oldEntry;
+                        }
+                    })
+                    return exists ? newList : [...newList, forceEntry]
+                })
+            }
+        })
+        return
         const links = cat["entryLinks"]["entryLink"]
         links.map((link: any) => {
             console.log(link);
@@ -80,8 +108,22 @@ function App() {
         })
     }
 
-
-    return (<Datasheet/>);
+    return <div>
+        <table>
+            <tr>
+                <td>
+                    Show Panoptica Changes:<input type={"checkbox"}></input>
+                </td>
+            </tr>
+        </table>
+        {dataLoading ? <Spinner size={SpinnerSize.large}/>
+            :
+            unitList.map((fe) => {
+                return <Datasheet forceEntry={fe}/>
+            })
+        }
+    </div>
 }
+
 
 export default App;

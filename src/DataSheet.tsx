@@ -1,8 +1,8 @@
 import React from 'react';
 import './App.css';
-import {IForceEntry} from "./App";
+import {IUnitEntry} from "./App";
 
-enum fos {
+export enum fos {
     hq = "hq",
     troop = "troop",
     elite = "elite",
@@ -42,20 +42,21 @@ interface iModel {
 
 export interface iUnit {
     name: string
-    points: number
-    models: iModel[]
-    rules: iRule[]
-    fos: fos
+    points?: number
+    models?: iModel[]
+    rules?: iRule[]
+    fos?: fos
 }
 
 interface datasheetProps {
-    forceEntry: IForceEntry
+    forceEntry: IUnitEntry
 }
 
 function Datasheet(props: datasheetProps) {
     const unit = props.forceEntry.unit
     return (<>
             <div className={"ds-sidebar"}>
+                
                 <>Icon Here</>
             </div>
             <div className={"ds-main"}>

@@ -56,8 +56,7 @@ function Datasheet(props: datasheetProps) {
     const unit = props.forceEntry.unit
     return (<>
             <div className={"ds-sidebar"}>
-                
-                <>Icon Here</>
+                {props.forceEntry.unit?.fos}
             </div>
             <div className={"ds-main"}>
                 <div className={'ds-name'}>
@@ -79,7 +78,7 @@ function Datasheet(props: datasheetProps) {
                             <td>Ld</td>
                             <td>Sv</td>
                         </tr>
-                        {unit.models.map(
+                        {unit.models?.map(
                             (model) => {
                                 return <tr>
                                     <td className={"ds-table-name"}>{model.name}</td>

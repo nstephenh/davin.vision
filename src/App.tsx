@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import './App.css';
 import Datasheet, {fos, iUnit} from "./DataSheet";
 
@@ -17,49 +17,83 @@ export interface IUnitEntry {
     unit?: iUnit;
 }
 
+export interface IRule {
+    bs_id: string;
+    name: string;
+    description: any;
+}
+
+
 function App() {
-    const [unitList, setUnitList] = useState(Array<IUnitEntry>())
-    const [dataLoading, setDataLoading] = useState(true)
+    const [unitListA, setUnitListA] = useState(Array<IUnitEntry>())
+    const [unitListB, setUnitListB] = useState(Array<IUnitEntry>())
+    const [ruleListA, setRuleListA] = useState(Array<IRule>())
+    const [ruleListB, setRuleListB] = useState(Array<IRule>())
+    const [dataLoading, setDataLoading] = useState(false)
 
 
-    useEffect(() => {
-            setDataLoading(true)
-            //Will be called twice in dev. Annoying strict mode thing.
-            // @ts-ignore
-            git.clone({
-                fs,
-                http,
-                dir: '/heresy',
-                corsProxy: 'https://cors.isomorphic-git.org',
-                url: 'https://github.com/BSData/horus-heresy/',
-                singleBranch: true,
-                depth: 1
-            }).then(() => {
-                console.log("Checked out data from github")
-                fs.promises.readdir("/heresy").then((filenames) => {
-                    filenames.map((filename) => {
-                        runOnFile(filename, GetSelectionEntries)
-                        runOnFile(filename, GetForceSlots)
-                    })
+    const [sourceA, setSourceA] = useState("https://github.com/BSData/horus-heresy/")
+    const [sourceB, setSourceB] = useState("https://github.com/nstephenh/panoptica-heresy/")
+
+
+    const diffRepos = useCallback(() => {
+        setDataLoading(true)
+        //Will be called twice in dev. Annoying strict mode thing.
+        // @ts-ignore
+        git.clone({
+            fs,
+            http,
+            dir: '/srcA',
+            corsProxy: 'https://cors.isomorphic-git.org',
+            url: sourceA,
+            singleBranch: true,
+            depth: 1
+        }).then(() => {
+            console.log("Checked out data from ", sourceA)
+            fs.promises.readdir("/srcA").then((filenames: string[]) => {
+                filenames.map((filename: string) => {
+                    runOnFile(filename, false, GetSelectionEntries)
+                    runOnFile(filename, false, GetForceSlots)
                 })
-            });
-            setDataLoading(false)
-        }, []
-    )
-    function getUnit(entryId: string) : IUnitEntry | null{
+            })
+        });
+        git.clone({
+            fs,
+            http,
+            dir: '/srcB',
+            corsProxy: 'https://cors.isomorphic-git.org',
+            url: sourceB,
+            singleBranch: true,
+            depth: 1
+        }).then(() => {
+            console.log("Checked out data from ", sourceB)
+            fs.promises.readdir("/srcB").then((filenames: string[]) => {
+                filenames.map((filename: string) => {
+                    runOnFile(filename, true, GetSelectionEntries)
+                    runOnFile(filename, true, GetForceSlots)
+                })
+            })
+        });
+    }, [sourceA, sourceB])
 
+    function getUnit(entryId: string, useB = false): IUnitEntry | null {
         let unit = null;
-        if (unitList.some((oldEntry) => {
-                unit = oldEntry
-                return (oldEntry.bs_id == entryId);
-        })){
-            return unit
+        const list = useB ? unitListB : unitListA;
+        if (list.some((oldEntry) => {
+            unit = oldEntry;
+            return (oldEntry.bs_id == entryId);
+        })) {
+            return unit;
         }
+        return unit;
     }
-    function addUnit(unitEntry: IUnitEntry) {
-        setUnitList((unitList) => {
+
+    function addUnit(unitEntry: IUnitEntry, useB: boolean) {
+        const set = useB ? setUnitListB : setUnitListA;
+
+        set((oldList) => {
             let exists = false;
-            const newList = unitList.map((oldEntry) => {
+            const newList = oldList.map((oldEntry) => {
                 if (oldEntry.bs_id == unitEntry.bs_id) {
                     exists = true
                     return unitEntry;
@@ -67,21 +101,37 @@ function App() {
                     return oldEntry;
                 }
             })
-            return exists ? newList : [...newList, unitEntry]
+            return exists ? newList : [...oldList, unitEntry]
         })
     }
 
-    function runOnFile(filename: string, action: (cat: any) => void) {
-        //console.log(filename)
+    function addRule(rule: IRule, useB: boolean) {
+        const set = useB ? setRuleListB : setRuleListA;
+        set((oldList) => {
+            let exists = false;
+            const newList = oldList.map((oldEntry) => {
+                if (oldEntry.bs_id == rule.bs_id) {
+                    exists = true
+                    return rule;
+                } else {
+                    return oldEntry;
+                }
+            })
+            return exists ? newList : [...newList, rule]
+        })
+    }
+
+    function runOnFile(filename: string, useB: boolean, action: (cat: any, useB: boolean) => void) {
         const extension = filename.split(".").pop()
         if (extension && ['cat', 'gst'].indexOf(extension) == 0) {
             //console.log("Is battlescribe file: ", filename);
-            fs.promises.readFile('/heresy/' + filename).then((content) => {
-                const jObj = parse(content.buffer as Buffer);
+            const path = useB ? "/srcB/" : "/srcA/";
+            fs.promises.readFile(path + filename).then((content) => {
+                const jObj = parse((content as Uint8Array).buffer as Buffer);
                 const cat = (jObj as Record<string, any>)["catalogue"]
-                if (cat["$gameSystemId"] == "28d4-bd2e-4858-ece6") {
+                if (cat["$gameSystemId"] == "28d4-bd2e-4858-ece6" || cat["$gameSystemId"] == "28d4-bd2e-4858-ece7") {
                     //console.log("Valid 2.0 cat")
-                    action(cat)
+                    action(cat, useB)
                 } else {
                     //console.log("Not a 2.0 cat")
                 }
@@ -89,48 +139,62 @@ function App() {
         }
     }
 
-    function GetSelectionEntries(cat: any) {
+    function GetSelectionEntries(cat: any, useB = false) {
         const sses = cat ["sharedSelectionEntries"]["selectionEntry"]
         sses.map((link: any) => {
             if (link['$type'] == "unit") {
                 const forceEntry: IUnitEntry = {
                     name: link["$name"],
                     bs_id: link["$id"],
-                    raw_data: link
+                    raw_data: link,
                 }
-                console.log(forceEntry)
-                addUnit(forceEntry)
+                addUnit(forceEntry, useB)
             }
         })
     }
 
-    function GetForceSlots(cat: any) {
+    function GetForces(cat: any, useB = false) {
+        const sses = cat ["sharedRules"]["rules"]
+        sses.map((rule: any) => {
+            const forceEntry: IUnitEntry = {
+                name: rule["$name"],
+                bs_id: rule["$id"],
+                raw_data: rule,
+            }
+            console.log(forceEntry)
+        })
+    }
+
+    function GetForceSlots(cat: any, useB: boolean) {
         const links = cat["entryLinks"]["entryLink"]
         links.map((link: any) => {
             console.log(link);
             let isUnit = false
-            function GetFOSlot(categoryLink: any){
+
+            function GetFOSlot(categoryLink: any) {
                 const cat_id = categoryLink.$targetId
-                switch(cat_id){
+                switch (cat_id) {
                     case "36c3-e85e-97cc-c503":
                         break;  //This thing is a unit
                     case "4f85-eb33-30c9-8f51":
                         return fos.hq
                 }
+                return undefined;
             }
-            let fos = null;
+
+            let slot = null;
             if (Array.isArray(link["categoryLinks"]["categoryLink"])) {
                 link["categoryLinks"]["categoryLink"].map((categoryLink: any) => {
-                    fos = GetFOSlot(categoryLink)
+                    slot = GetFOSlot(categoryLink)
                 })
             } else {
-                fos = GetFOSlot(link["categoryLinks"]["categoryLink"])
+                slot = GetFOSlot(link["categoryLinks"]["categoryLink"])
             }
-            if (fos){
-                const unitEntry = fos.getUnit(link.$targetId)
-                if (unitEntry){
-                    unitEntry.unit.fos = fos
-                    addUnit(unitEntry)
+            if (slot) {
+                const unitEntry = getUnit(link.$targetId, useB)
+                if (unitEntry && unitEntry.unit) {
+                    unitEntry.unit.fos = slot
+                    addUnit(unitEntry, useB)
                 }
 
             }
@@ -142,19 +206,33 @@ function App() {
     }
 
     return <div>
-        <table>
-            <tr>
-                <td>
-                    Show Panoptica Changes:<input type={"checkbox"}></input>
-                </td>
-            </tr>
-        </table>
-        {dataLoading ? <Spinner size={SpinnerSize.large}/>
-            :
-            unitList.map((fe) => {
-                return <Datasheet forceEntry={fe}/>
-            })
-        }
+        <div className="row">
+            <div className="column">
+                Source A: <input type={"text"} value={sourceA}
+                                 onChange={(event) => setSourceA(event.target.value)}></input>
+
+            </div>
+            <div className="column">
+                Source B: <input type={"text"} value={sourceB}
+                                 onChange={(event) => setSourceB(event.target.value)}></input>
+
+            </div>
+        </div>
+        <div className="row">
+            {!dataLoading && <button onClick={diffRepos}>Load Data</button>}
+        </div>
+        <div className="row">
+            <div className="column">
+                {unitListA.length ? unitListA.map((fe) => {
+                    return <Datasheet forceEntry={fe}/>
+                }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
+            </div>
+            <div className="column">
+                {unitListB.length ? unitListB.map((fe) => {
+                    return <Datasheet forceEntry={fe}/>
+                }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
+            </div>
+        </div>
     </div>
 }
 

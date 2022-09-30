@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@fluentui/react": "^8.94.3",
-    "@isomorphic-git/lightning-fs": "isomorphic-git/lightning-fs",
+    "@isomorphic-git/lightning-fs": "^4.6.0",
     "@types/isomorphic-git__lightning-fs": "^4.4.3",
     "arraybuffer-xml-parser": "^0.6.0",
     "buffer": "^6.0.3",

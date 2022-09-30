@@ -1555,9 +1555,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@isomorphic-git/lightning-fs@isomorphic-git/lightning-fs":
-  version: 0.0.0-development
-  resolution: "@isomorphic-git/lightning-fs@https://github.com/isomorphic-git/lightning-fs.git#commit=b041900186c126691cddcfd0b355b417404f0c16"
+"@isomorphic-git/lightning-fs@npm:^4.6.0":
+  version: 4.6.0
+  resolution: "@isomorphic-git/lightning-fs@npm:4.6.0"
   dependencies:
     "@isomorphic-git/idb-keyval": 3.3.2
     isomorphic-textencoder: 1.0.1
@@ -1565,7 +1565,7 @@ __metadata:
     just-once: 1.1.0
   bin:
     superblocktxt: src/superblocktxt.js
-  checksum: d6e32491c0b60f1dbffccbcdbe08aa8d711b536392ee705034aacc67cf2211d1479869db37ce8162691cc57f062f3acc1efea33d795d3adf0d627e5af1246418
+  checksum: 5f1e73b8e291cd8c06baf2fcbe1fc90b2a7fb3592e14be5b17ef963743e2a8fe15544c5213ca53bd67a936f4243e38a2cd36ccf497da6efeac7aef3dbdcbe81f
   languageName: node
   linkType: hard
 
@@ -3013,7 +3013,7 @@ __metadata:
     "@babel/preset-env": ^7.19.0
     "@babel/preset-react": ^7.18.6
     "@fluentui/react": ^8.94.3
-    "@isomorphic-git/lightning-fs": isomorphic-git/lightning-fs
+    "@isomorphic-git/lightning-fs": ^4.6.0
     "@types/isomorphic-git__lightning-fs": ^4.4.3
     "@types/react": ^18.0.18
     "@types/react-dom": ^18.0.6

@@ -3,7 +3,7 @@
 > How can this be without the use of sorcery?
  - Horus Lupercal, Graham McNeill - False Gods
 
-This is a webapp which retrieves battlescribe data, parses it, and throws some seasoning on top.
+This is a webapp which retrieves battlescribe data from two repos, parses it, and highlights changes.
 
 ## Building and running on localhost
 

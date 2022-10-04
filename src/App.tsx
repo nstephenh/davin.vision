@@ -1,4 +1,4 @@
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useState, useCallback} from 'react';
 import './App.css';
 import Datasheet, {fos, iUnit} from "./DataSheet";
 
@@ -6,7 +6,7 @@ import git from 'isomorphic-git'
 import http from 'isomorphic-git/http/web'
 import FS from '@isomorphic-git/lightning-fs';
 import {parse} from 'arraybuffer-xml-parser';
-import {Spinner, SpinnerSize} from "@fluentui/react";
+import {ActionButton, Checkbox, Spinner, SpinnerSize} from "@fluentui/react";
 
 const fs = new FS('fs')
 
@@ -34,6 +34,10 @@ function App() {
 
     const [sourceA, setSourceA] = useState("https://github.com/BSData/horus-heresy/")
     const [sourceB, setSourceB] = useState("https://github.com/nstephenh/panoptica-heresy/")
+    const [showA, setShowA] = useState(true)
+    const [showB, setShowB] = useState(true)
+    const [onlyDiffs, setOnlyDiffs] = useState(false)
+    const [highlightDiffs, setHighlightDiffs] = useState(true)
 
 
     const diffRepos = useCallback(() => {
@@ -210,24 +214,27 @@ function App() {
             <div className="column">
                 Source A: <input type={"text"} value={sourceA}
                                  onChange={(event) => setSourceA(event.target.value)}></input>
+                <Checkbox label={"Show A:"} onChange={(event, checked) => setShowA(checked ?? false)} />
 
             </div>
             <div className="column">
                 Source B: <input type={"text"} value={sourceB}
                                  onChange={(event) => setSourceB(event.target.value)}></input>
-
+                 <Checkbox label={"Show B:"} checked={showB} onChange={(event, checked) => setShowB(checked ?? false)} />
             </div>
         </div>
         <div className="row">
-            {!dataLoading && <button onClick={diffRepos}>Load Data</button>}
+            {!dataLoading && <ActionButton onClick={diffRepos}>Load Data</ActionButton>}
+            <Checkbox label={"Highlight Changes:"} checked={highlightDiffs} onChange={(event, checked) => setHighlightDiffs(checked ?? false)} />
+
         </div>
         <div className="row">
-            <div className="column">
+            <div className="column" hidden={!showA}>
                 {unitListA.length ? unitListA.map((fe) => {
                     return <Datasheet forceEntry={fe}/>
                 }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
             </div>
-            <div className="column">
+            <div className="column" hidden={!showB}>
                 {unitListB.length ? unitListB.map((fe) => {
                     return <Datasheet forceEntry={fe}/>
                 }) : dataLoading && <Spinner size={SpinnerSize.large}/>}

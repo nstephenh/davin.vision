@@ -10,25 +10,31 @@ import {ActionButton, Checkbox, Spinner, SpinnerSize} from "@fluentui/react";
 
 const fs = new FS('fs')
 
-export interface IUnitEntry {
+interface IBSEntry {
     bs_id: string
+
+}
+
+export interface IUnitEntry extends IBSEntry {
     name: string
     raw_data: any
     unit?: iUnit;
 }
 
-export interface IRule {
-    bs_id: string;
+export interface IRule extends IBSEntry {
     name: string;
     description: any;
 }
 
+interface IDoubleEntry<entryType> extends IBSEntry {
+    a?: entryType;
+    b?: entryType;
+}
+
 
 function App() {
-    const [unitListA, setUnitListA] = useState(Array<IUnitEntry>())
-    const [unitListB, setUnitListB] = useState(Array<IUnitEntry>())
-    const [ruleListA, setRuleListA] = useState(Array<IRule>())
-    const [ruleListB, setRuleListB] = useState(Array<IRule>())
+    const [unitList, setUnitList] = useState(Array<IDoubleEntry<IUnitEntry>>())
+    const [ruleList, setRuleList] = useState(Array<IDoubleEntry<IRule>>())
     const [dataLoading, setDataLoading] = useState(false)
 
 
@@ -70,51 +76,6 @@ function App() {
         LoadFromGithub(sourceB, true)
     }, [sourceA, sourceB])
 
-    function getUnit(entryId: string, useB = false): IUnitEntry | null {
-        let unit = null;
-        const list = useB ? unitListB : unitListA;
-        if (list.some((oldEntry) => {
-            unit = oldEntry;
-            return (oldEntry.bs_id == entryId);
-        })) {
-            return unit;
-        }
-        return unit;
-    }
-
-    function addUnit(unitEntry: IUnitEntry, useB: boolean) {
-        const set = useB ? setUnitListB : setUnitListA;
-
-        set((oldList) => {
-            let exists = false;
-            const newList = oldList.map((oldEntry) => {
-                if (oldEntry.bs_id == unitEntry.bs_id) {
-                    exists = true
-                    return unitEntry;
-                } else {
-                    return oldEntry;
-                }
-            })
-            return exists ? newList : [...oldList, unitEntry]
-        })
-    }
-
-    function addRule(rule: IRule, useB: boolean) {
-        const set = useB ? setRuleListB : setRuleListA;
-        set((oldList) => {
-            let exists = false;
-            const newList = oldList.map((oldEntry) => {
-                if (oldEntry.bs_id == rule.bs_id) {
-                    exists = true
-                    return rule;
-                } else {
-                    return oldEntry;
-                }
-            })
-            return exists ? newList : [...newList, rule]
-        })
-    }
-
     function runOnFile(filename: string, useB: boolean, action: (cat: any, useB: boolean) => void) {
         const extension = filename.split(".").pop()
         if (extension && ['cat', 'gst'].indexOf(extension) == 0) {
@@ -133,12 +94,66 @@ function App() {
         }
     }
 
+    function getDoubleEntry<entryType extends IBSEntry>(entryList: Array<IDoubleEntry<entryType>>, entryId: string): IDoubleEntry<entryType> | null {
+        let entry = null;
+        if (entryList.some((oldEntry) => {
+            entry = oldEntry; //go through each old entry, find the first one that matches ID
+            return (oldEntry.bs_id == entryId);
+        })) {
+            return entry;
+        }
+        return null;
+
+    }
+
+    const getUnit = useCallback((id: string, useB: boolean) => {
+        const entry = getDoubleEntry<IUnitEntry>(unitList, id)
+        return useB ? entry?.b : entry?.a;
+    }, [unitList])
+
+    function updateDoubleEntry<entryType extends IBSEntry>(oldList: IDoubleEntry<entryType>[], newEntry: entryType, useB: boolean) {
+        let exists = false;
+        const newList = oldList.map((doubleEntry) => {
+            if (doubleEntry.bs_id == newEntry.bs_id) {
+                exists = true
+                if (useB) {
+                    doubleEntry.b = newEntry;
+                } else {
+                    doubleEntry.a = newEntry;
+                }
+                return doubleEntry;
+            } else {
+                return doubleEntry;
+            }
+        })
+        if (exists) {return newList}
+        const newDoubleEntry: IDoubleEntry<entryType> = {bs_id: newEntry.bs_id}
+        if (useB) {
+            newDoubleEntry.b = newEntry;
+        } else {
+            newDoubleEntry.a = newEntry;
+        }
+        return [...oldList, newDoubleEntry]
+    }
+
+    function addUnit(newEntry: IUnitEntry, useB: boolean) {
+        setUnitList((oldList) => {
+            return updateDoubleEntry(oldList, newEntry, useB)
+        })
+    }
+
+    function addRule(rule: IRule, useB: boolean) {
+        setRuleList((oldList) => {
+            return updateDoubleEntry(oldList, rule, useB)
+        })
+    }
+
     function GetSelectionEntries(cat: any, useB = false) {
         if (!(cat["sharedSelectionEntries"] && cat["sharedSelectionEntries"]["selectionEntry"])) {
             return
         }
-        const sses = cat ["sharedSelectionEntries"]["selectionEntry"]
-        sses.map((link: any) => {
+        const sharedSelectionEntries = cat ["sharedSelectionEntries"]["selectionEntry"]
+        sharedSelectionEntries.map((link: any) => {
             if (link['$type'] == "unit") {
                 const forceEntry: IUnitEntry = {
                     name: link["$name"],
@@ -216,7 +231,7 @@ function App() {
             <div className="column">
                 Source A: <input type={"text"} value={sourceA}
                                  onChange={(event) => setSourceA(event.target.value)}></input>
-                <Checkbox label={"Show A:"} onChange={(event, checked) => setShowA(checked ?? false)}/>
+                <Checkbox label={"Show A:"} checked={showA} onChange={(event, checked) => setShowA(checked ?? false)}/>
 
             </div>
             <div className="column">
@@ -234,33 +249,33 @@ function App() {
         <div className="row">
             <h2>Units</h2>
         </div>
-        <div className="row">
-            <div className="column" hidden={!showA}>
-                {unitListA.length ? unitListA.map((fe) => {
-                    return <Datasheet forceEntry={fe}/>
-                }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
+        {unitList.length ? unitList.map((entry) => {
+            return <div className="row">
+                <div className="column" hidden={!showA}>
+
+                    {entry.a && <Datasheet forceEntry={entry.a}/>}
+                </div>
+                <div className="column" hidden={!showB}>
+
+                    {entry.b && <Datasheet forceEntry={entry.b}/>}
+                </div>
             </div>
-            <div className="column" hidden={!showB}>
-                {unitListB.length ? unitListB.map((fe) => {
-                    return <Datasheet forceEntry={fe}/>
-                }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
-            </div>
-        </div>
+        }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
         <div className="row">
             <h2>Rules</h2>
         </div>
-        <div className="row">
-            <div className="column" hidden={!showA}>
-                {ruleListA.length ? ruleListA.map((rule) => {
-                    return <div><strong>{rule.name}</strong>: {rule.description} </div>
-                }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
+        {ruleList.length ? ruleList.map((entry) => {
+            return <div className="row">
+                <div className="column" hidden={!showA}>
+
+                    {entry.a && <div><strong>{entry.a.name}</strong>: {entry.a.description} </div>}
+                </div>
+                <div className="column" hidden={!showB}>
+
+                    {entry.b && <div><strong>{entry.b.name}</strong>: {entry.b.description} </div>}
+                </div>
             </div>
-            <div className="column" hidden={!showB}>
-                {ruleListA.length ? ruleListB.map((rule) => {
-                    return <div><strong>{rule.name}</strong>: {rule.description} </div>
-                }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
-            </div>
-        </div>
+        }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
     </div>
 }
 

@@ -36,48 +36,38 @@ function App() {
     const [sourceB, setSourceB] = useState("https://github.com/nstephenh/panoptica-heresy/")
     const [showA, setShowA] = useState(true)
     const [showB, setShowB] = useState(true)
-    const [onlyDiffs, setOnlyDiffs] = useState(false)
+    //const [onlyDiffs, setOnlyDiffs] = useState(false)
     const [highlightDiffs, setHighlightDiffs] = useState(true)
 
 
-    const diffRepos = useCallback(() => {
+    function LoadFromGithub(source: string, useB: boolean) {
+        const path = useB ? "/srcB" : "/srcA";
+        git.clone({
+            fs,
+            http,
+            dir: path,
+            corsProxy: 'https://cors.isomorphic-git.org',
+            url: source,
+            singleBranch: true,
+            depth: 1
+        }).then(() => {
+            console.log("Checked out data from ", source)
+            fs.promises.readdir(path).then((filenames: string[]) => {
+                filenames.map((filename: string) => {
+                    runOnFile(filename, useB, GetSelectionEntries)
+                    runOnFile(filename, useB, GetForceSlots)
+                    runOnFile(filename, useB, GetRules)
+                })
+            })
+        });
+    }
+
+    const loadData = useCallback(() => {
         setDataLoading(true)
         //Will be called twice in dev. Annoying strict mode thing.
         // @ts-ignore
-        git.clone({
-            fs,
-            http,
-            dir: '/srcA',
-            corsProxy: 'https://cors.isomorphic-git.org',
-            url: sourceA,
-            singleBranch: true,
-            depth: 1
-        }).then(() => {
-            console.log("Checked out data from ", sourceA)
-            fs.promises.readdir("/srcA").then((filenames: string[]) => {
-                filenames.map((filename: string) => {
-                    runOnFile(filename, false, GetSelectionEntries)
-                    runOnFile(filename, false, GetForceSlots)
-                })
-            })
-        });
-        git.clone({
-            fs,
-            http,
-            dir: '/srcB',
-            corsProxy: 'https://cors.isomorphic-git.org',
-            url: sourceB,
-            singleBranch: true,
-            depth: 1
-        }).then(() => {
-            console.log("Checked out data from ", sourceB)
-            fs.promises.readdir("/srcB").then((filenames: string[]) => {
-                filenames.map((filename: string) => {
-                    runOnFile(filename, true, GetSelectionEntries)
-                    runOnFile(filename, true, GetForceSlots)
-                })
-            })
-        });
+        LoadFromGithub(sourceA, false);
+        LoadFromGithub(sourceB, true)
     }, [sourceA, sourceB])
 
     function getUnit(entryId: string, useB = false): IUnitEntry | null {
@@ -144,6 +134,9 @@ function App() {
     }
 
     function GetSelectionEntries(cat: any, useB = false) {
+        if (!(cat["sharedSelectionEntries"] && cat["sharedSelectionEntries"]["selectionEntry"])) {
+            return
+        }
         const sses = cat ["sharedSelectionEntries"]["selectionEntry"]
         sses.map((link: any) => {
             if (link['$type'] == "unit") {
@@ -157,31 +150,44 @@ function App() {
         })
     }
 
-    function GetForces(cat: any, useB = false) {
-        const sses = cat ["sharedRules"]["rules"]
-        sses.map((rule: any) => {
-            const forceEntry: IUnitEntry = {
+    function GetRules(cat: any, useB = false) {
+        if (!(cat["sharedRules"] && cat["sharedRules"]["rule"])) {
+            return
+        }
+        const rules = cat["sharedRules"]["rule"]
+        const xmlRuleToRule = (rule: any) => {
+            const ruleEntry: IRule = {
                 name: rule["$name"],
                 bs_id: rule["$id"],
-                raw_data: rule,
+                description: rule["description"],
             }
-            console.log(forceEntry)
-        })
+            console.log(ruleEntry)
+            addRule(ruleEntry, useB)
+        }
+        if (Array.isArray(rules)) {
+            rules.map((rule: any) => {
+                xmlRuleToRule(rule)
+            })
+        } else {
+            xmlRuleToRule(rules) // Rules is just a singular rule
+        }
     }
 
     function GetForceSlots(cat: any, useB: boolean) {
+        if (!(cat["entryLinks"] && cat["entryLinks"]["entryLink"])) {
+            return
+        }
         const links = cat["entryLinks"]["entryLink"]
-        links.map((link: any) => {
-            console.log(link);
-            let isUnit = false
 
+        links.map((link: any) => {
             function GetFOSlot(categoryLink: any) {
                 const cat_id = categoryLink.$targetId
                 switch (cat_id) {
-                    case "36c3-e85e-97cc-c503":
-                        break;  //This thing is a unit
                     case "4f85-eb33-30c9-8f51":
                         return fos.hq
+                    case "36c3-e85e-97cc-c503":
+                        //This thing is a unit
+                        break;
                 }
                 return undefined;
             }
@@ -202,10 +208,6 @@ function App() {
                 }
 
             }
-            if (isUnit) {
-                console.log("Is a unit!")
-
-            }
         })
     }
 
@@ -214,19 +216,23 @@ function App() {
             <div className="column">
                 Source A: <input type={"text"} value={sourceA}
                                  onChange={(event) => setSourceA(event.target.value)}></input>
-                <Checkbox label={"Show A:"} onChange={(event, checked) => setShowA(checked ?? false)} />
+                <Checkbox label={"Show A:"} onChange={(event, checked) => setShowA(checked ?? false)}/>
 
             </div>
             <div className="column">
                 Source B: <input type={"text"} value={sourceB}
                                  onChange={(event) => setSourceB(event.target.value)}></input>
-                 <Checkbox label={"Show B:"} checked={showB} onChange={(event, checked) => setShowB(checked ?? false)} />
+                <Checkbox label={"Show B:"} checked={showB} onChange={(event, checked) => setShowB(checked ?? false)}/>
             </div>
         </div>
         <div className="row">
-            {!dataLoading && <ActionButton onClick={diffRepos}>Load Data</ActionButton>}
-            <Checkbox label={"Highlight Changes:"} checked={highlightDiffs} onChange={(event, checked) => setHighlightDiffs(checked ?? false)} />
+            {!dataLoading && <ActionButton onClick={loadData}>Load Data</ActionButton>}
+            <Checkbox label={"Highlight Changes:"} checked={highlightDiffs}
+                      onChange={(event, checked) => setHighlightDiffs(checked ?? false)}/>
 
+        </div>
+        <div className="row">
+            <h2>Units</h2>
         </div>
         <div className="row">
             <div className="column" hidden={!showA}>
@@ -237,6 +243,21 @@ function App() {
             <div className="column" hidden={!showB}>
                 {unitListB.length ? unitListB.map((fe) => {
                     return <Datasheet forceEntry={fe}/>
+                }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
+            </div>
+        </div>
+        <div className="row">
+            <h2>Rules</h2>
+        </div>
+        <div className="row">
+            <div className="column" hidden={!showA}>
+                {ruleListA.length ? ruleListA.map((rule) => {
+                    return <div><strong>{rule.name}</strong>: {rule.description} </div>
+                }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
+            </div>
+            <div className="column" hidden={!showB}>
+                {ruleListA.length ? ruleListB.map((rule) => {
+                    return <div><strong>{rule.name}</strong>: {rule.description} </div>
                 }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
             </div>
         </div>

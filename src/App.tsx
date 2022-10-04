@@ -7,6 +7,7 @@ import http from 'isomorphic-git/http/web'
 import FS from '@isomorphic-git/lightning-fs';
 import {parse} from 'arraybuffer-xml-parser';
 import {ActionButton, Checkbox, Spinner, SpinnerSize} from "@fluentui/react";
+import {diff} from "deep-diff";
 
 const fs = new FS('fs')
 
@@ -36,6 +37,8 @@ function App() {
     const [unitList, setUnitList] = useState(Array<IDoubleEntry<IUnitEntry>>())
     const [ruleList, setRuleList] = useState(Array<IDoubleEntry<IRule>>())
     const [dataLoading, setDataLoading] = useState(false)
+    const [dataLoaded, setDataLoaded] = useState(false)
+
 
 
     const [sourceA, setSourceA] = useState("https://github.com/BSData/horus-heresy/")
@@ -46,9 +49,9 @@ function App() {
     const [highlightDiffs, setHighlightDiffs] = useState(true)
 
 
-    function LoadFromGithub(source: string, useB: boolean) {
+    async function LoadFromGithub(source: string, useB: boolean) {
         const path = useB ? "/srcB" : "/srcA";
-        git.clone({
+        await git.clone({
             fs,
             http,
             dir: path,
@@ -68,12 +71,12 @@ function App() {
         });
     }
 
-    const loadData = useCallback(() => {
+    const loadData = useCallback(async () => {
         setDataLoading(true)
         //Will be called twice in dev. Annoying strict mode thing.
-        // @ts-ignore
-        LoadFromGithub(sourceA, false);
-        LoadFromGithub(sourceB, true)
+        await LoadFromGithub(sourceA, false)
+        await LoadFromGithub(sourceB, true)
+        setDataLoaded(true)
     }, [sourceA, sourceB])
 
     function runOnFile(filename: string, useB: boolean, action: (cat: any, useB: boolean) => void) {
@@ -126,7 +129,9 @@ function App() {
                 return doubleEntry;
             }
         })
-        if (exists) {return newList}
+        if (exists) {
+            return newList
+        }
         const newDoubleEntry: IDoubleEntry<entryType> = {bs_id: newEntry.bs_id}
         if (useB) {
             newDoubleEntry.b = newEntry;
@@ -226,6 +231,7 @@ function App() {
         })
     }
 
+
     return <div>
         <div className="row">
             <div className="column">
@@ -265,18 +271,26 @@ function App() {
             <h2>Rules</h2>
         </div>
         {ruleList.length ? ruleList.map((entry) => {
-            return <div className="row">
-                <div className="column" hidden={!showA}>
+            if (dataLoaded){
+                const diffResult = diff(entry.a, entry.b)
+                console.log(diffResult)
+            }
+            return <React.Fragment>
+                <div className="row">
+                    <div className="column" hidden={!showA}>
 
-                    {entry.a && <div><strong>{entry.a.name}</strong>: {entry.a.description} </div>}
-                </div>
-                <div className="column" hidden={!showB}>
+                        {entry.a && <div><strong>{entry.a.name}</strong>: {entry.a.description} </div>}
+                    </div>
+                    <div className="column" hidden={!showB}>
 
-                    {entry.b && <div><strong>{entry.b.name}</strong>: {entry.b.description} </div>}
+                        {entry.b && <div><strong>{entry.b.name}</strong>: {entry.b.description} </div>}
+                    </div>
                 </div>
-            </div>
-        }) : dataLoading && <Spinner size={SpinnerSize.large}/>}
+            </React.Fragment>
+
+        }) : (dataLoading && <Spinner size={SpinnerSize.large}/>)}
     </div>
+
 }
 
 

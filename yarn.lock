@@ -1737,6 +1737,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/deep-diff@npm:":
+  version: 1.0.1
+  resolution: "@types/deep-diff@npm:1.0.1"
+  checksum: cfd4ab732051b571a2e7f265b147619ae703977567f00db342ff2197c30caabc8e3096c194c22e08ea7c56af4dd5c55fc23881605e71851f70840c7587cd5ec2
+  languageName: node
+  linkType: hard
+
 "@types/eslint-scope@npm:^3.7.3":
   version: 3.7.4
   resolution: "@types/eslint-scope@npm:3.7.4"
@@ -3014,6 +3021,7 @@ __metadata:
     "@babel/preset-react": ^7.18.6
     "@fluentui/react": ^8.94.3
     "@isomorphic-git/lightning-fs": ^4.6.0
+    "@types/deep-diff": ""
     "@types/isomorphic-git__lightning-fs": ^4.4.3
     "@types/react": ^18.0.18
     "@types/react-dom": ^18.0.6
@@ -3021,6 +3029,7 @@ __metadata:
     babel-loader: ^8.2.5
     buffer: ^6.0.3
     css-loader: ^6.7.1
+    deep-diff: ""
     fast-xml-parser: ^4.0.9
     html-webpack-plugin: ^5.5.0
     isomorphic-git: ^1.21.0
@@ -3065,6 +3074,13 @@ __metadata:
   dependencies:
     mimic-response: ^3.1.0
   checksum: d377cf47e02d805e283866c3f50d3d21578b779731e8c5072d6ce8c13cc31493db1c2f6784da9d1d5250822120cefa44f1deab112d5981015f2e17444b763812
+  languageName: node
+  linkType: hard
+
+"deep-diff@npm:":
+  version: 1.0.2
+  resolution: "deep-diff@npm:1.0.2"
+  checksum: 9de8b5eedc1957116e1b47e4c3c4e3dbe23cb741abefc5ec8829a12e77958c689ac46888a3c35320f976cf42fb6de2b016e158facdb24d894ab5b5fdabad9b34
   languageName: node
   linkType: hard
 

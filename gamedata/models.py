@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from django.db import models
+from django.utils import timezone
 
 
 # Create your models here
@@ -25,43 +26,47 @@ class GameEdition(models.Model):
 
 
 class BuilderModel(models.Model):
+    edition = models.ForeignKey(GameEdition, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, blank=True, null=True)
     builder_id = models.CharField(max_length=40, blank=True, null=True)
 
     class Meta:
         abstract = True
 
-
-class GameCharacteristic(BuilderModel):
-    edition = models.ForeignKey(GameEdition, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
-    abbreviation = models.CharField(max_length=10)
-
     def __str__(self):
         return f"{self.name} from {self.edition}"
 
 
+class Publication(BuilderModel):
+    publication_year = models.PositiveIntegerField(blank=True, null=True)  # Since we can't be super exact with dates.
+    publication_date = models.DateField(blank=True, null=True)
+
+
 class ProfileType(BuilderModel):
-    edition = models.ForeignKey(GameEdition, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
+    pass
+
+
+class CharacteristicType(BuilderModel):
+    profile_type = models.ForeignKey(ProfileType, on_delete=models.CASCADE)
+    abbreviation = models.CharField(max_length=10)
 
     def __str__(self):
-        return f"{self.name} ({self.edition})"
+        return f"{self.name} on {self.profile_type}"
 
 
 class Profile(BuilderModel):
-    version_date = models.DateTimeField(default=datetime.now)
-    edition = models.ForeignKey(GameEdition, on_delete=models.CASCADE)
-    name = models.CharField(max_length=100)
-    type = models.ForeignKey(ProfileType, on_delete=models.CASCADE)
+    version_date = models.DateTimeField(default=timezone.now)  # Versions of profiles if multiple
+    publication = models.ForeignKey(Publication, on_delete=models.CASCADE, blank=True, null=True)
+    profile_type = models.ForeignKey(ProfileType, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.name} ({self.type}) from "
+        return f"{self.name} ({self.profile_type}) from {self.edition}"
 
 
-class Characteristic(BuilderModel):
+class ProfileCharacteristic(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE)
-    characteristic = models.ForeignKey(GameCharacteristic, on_delete=models.CASCADE)
-    value_text = models.CharField(max_length=240, blank=True, null=True)
+    characteristic_type = models.ForeignKey(CharacteristicType, on_delete=models.CASCADE)
+    value_text = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.characteristic} {self.value_text} from {self.profile}"
+        return f"{self.characteristic_type} on {self.profile}"

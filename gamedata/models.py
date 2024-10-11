@@ -67,7 +67,7 @@ class Profile(PublishedBuilderModel):
     profile_type = models.ForeignKey(ProfileType, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.name} ({self.profile_type}) from {self.edition}"
+        return f"{self.name} ({self.profile_type})"
 
 
 class ProfileCharacteristic(models.Model):

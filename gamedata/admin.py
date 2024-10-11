@@ -6,7 +6,24 @@ from gamedata.models import Game, GameEdition, Publication, CharacteristicType, 
 admin.site.register(Game)
 admin.site.register(GameEdition)
 admin.site.register(Publication)
-admin.site.register(CharacteristicType)
 admin.site.register(ProfileType)
-admin.site.register(Profile)
-admin.site.register(ProfileCharacteristic)
+
+
+@admin.register(Profile)
+class ProfileAdmin(admin.ModelAdmin):
+    search_fields = ['name']
+    list_filter = ["edition"]
+
+
+@admin.register(CharacteristicType)
+class CharacteristicTypeAdmin(admin.ModelAdmin):
+    search_fields = ['name']
+    list_filter = ["edition"]
+
+
+@admin.register(ProfileCharacteristic)
+class ProfileCharacteristicAdmin(admin.ModelAdmin):
+    search_fields = ['profile__name']
+    autocomplete_fields = ['profile', 'characteristic_type']
+    list_filter = ["profile__edition"]
+

@@ -54,9 +54,16 @@ class CharacteristicType(BuilderModel):
         return f"{self.name} on {self.profile_type}"
 
 
-class Profile(BuilderModel):
+class PublishedBuilderModel(BuilderModel):
+    publication = models.ForeignKey(Publication, on_delete=models.SET_NULL, blank=True, null=True)
+    page_number = models.PositiveIntegerField(blank=True, null=True)
+
+    class Meta:
+        abstract = True
+
+
+class Profile(PublishedBuilderModel):
     version_date = models.DateTimeField(default=timezone.now)  # Versions of profiles if multiple
-    publication = models.ForeignKey(Publication, on_delete=models.CASCADE, blank=True, null=True)
     profile_type = models.ForeignKey(ProfileType, on_delete=models.CASCADE)
 
     def __str__(self):
